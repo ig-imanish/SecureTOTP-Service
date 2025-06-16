@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2FA Auth - Profile</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a73e8, #34c759);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: #fff;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 400px;
+            padding: 24px;
+            margin: 16px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .logo h1 {
+            color: #1a73e8;
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        h2 {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        .profile-info {
+            padding: 16px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .profile-info img.avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            margin-bottom: 12px;
+            object-fit: cover;
+        }
+
+        .profile-info img.banner {
+            width: 100%;
+            height: 120px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            object-fit: cover;
+        }
+
+        .profile-info p {
+            color: #555;
+            font-size: 16px;
+            margin: 8px 0;
+        }
+
+        .profile-info .status {
+            font-size: 14px;
+            color: #1a73e8;
+            font-weight: 600;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            background: #1a73e8;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            text-align: center;
+            text-decoration: none;
+            transition: transform 0.2s, background 0.3s;
+            margin-top: 12px;
+        }
+
+        .btn:hover {
+            background: #1557b0;
+            transform: scale(1.05);
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 16px;
+                margin: 12px;
+            }
+
+            h2 {
+                font-size: 20px;
+            }
+
+            .profile-info img.avatar {
+                width: 80px;
+                height: 80px;
+            }
+
+            .profile-info img.banner {
+                height: 100px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <h1>2FA Auth</h1>
+        </div>
+        <h2>Your Profile</h2>
+        <div id="profile-info" class="profile-info"></div>
+        <a href="dashboard.html" class="btn">Back to Dashboard</a>
+    </div>
+    <script>
+        async function loadProfile() {
+            const token = localStorage.getItem('authToken');
+
+            if (!token) {
+                alert('No token found. Redirecting to login...');
+                window.location.href = 'login.html';
+                return;
+            }
+
+            try {
+                const response = await fetch('http://localhost:9000/api/v1/users/me', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.ok) {
+                    const user = await response.json();
+                     const roles = user.roles ? user.roles.map(role => role.roleName || 'Unknown').join(', ') : 'N/A';
+                    document.getElementById('profile-info').innerHTML = `
+                        ${user.userBanner ? `<img src="${user.userBanner}" alt="User Banner" class="banner">` : ''}
+                        ${user.userAvatar ? `<img src="${user.userAvatar}" alt="User Avatar" class="avatar">` : ''}
+                        <p>ID: ${user.id || 'N/A'}</p>
+                        <p>Full Name: ${user.fullName || 'N/A'}</p>
+                        <p>Username: ${user.username || 'N/A'}</p>
+                        <p>Email: ${user.email || 'N/A'}</p>
+                        <p>Roles: ${roles}</p>
+                        <p>Provider: ${user.provider || 'N/A'}</p>
+                        <p class="status">Premium: ${user.isPremium ? 'Yes' : 'No'}</p>
+                        <p class="status">Email Verified: ${user.verified ? 'Yes' : 'No'}</p>
+                     
+                        <p>Account Created: ${user.accountCreatedAt ? new Date(user.accountCreatedAt).toLocaleString() : 'N/A'}</p>
+                        <p>Avatar Public ID: ${user.userAvatarpublicId || 'N/A'}</p>
+                        <p>Banner Public ID: ${user.userBannerpublicId || 'N/A'}</p>
+                    `;
+                } else {
+                    throw new Error('Unauthorized or user not found');
+                }
+            } catch (err) {
+                console.error('API error:', err);
+                // Fallback to localStorage for demo
+                const user = JSON.parse(localStorage.getItem('userData') || '{}');
+                if (user.fullName && user.email) {
+                    document.getElementById('profile-info').innerHTML = `
+                        <img src="https://via.placeholder.com/120?text=Banner" alt="User Banner" class="banner">
+                        <img src="https://via.placeholder.com/100?text=U" alt="User Avatar" class="avatar">
+                        <p>ID: demo-user-id</p>
+                        <p>Full Name: ${user.fullName}</p>
+                        <p>Username: ${user.email.split('@')[0]}</p>
+                        <p>Email: ${user.email}</p>
+                        <p>Roles: User</p>
+                        <p>Provider: Local</p>
+                        <p class="status">Premium: No</p>
+                        <p class="status">Verified: Yes</p>
+                        <p>Account Created: ${new Date().toLocaleString()}</p>
+                        <p>Avatar Public ID: N/A</p>
+                        <p>Banner Public ID: N/A</p>
+                    `;
+                } else {
+                    alert('Unauthorized. Please login again.');
+                    localStorage.removeItem('authToken');
+                    localStorage.removeItem('userData');
+                    window.location.href = 'login.html';
+                }
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadProfile();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Verify OTP</title>
+  <style>
+    body { font-family: Arial; background: #eef2f3; display: flex; justify-content: center; align-items: center; height: 100vh; }
+    .box { background: white; padding: 30px; border-radius: 6px; box-shadow: 0 0 8px rgba(0,0,0,0.1); width: 300px; }
+    input, button { width: 100%; padding: 10px; margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h3>Verify OTP</h3>
+    <input type="email" id="email" placeholder="Email" readonly />
+    <input type="text" id="otp" placeholder="Enter OTP" />
+    <button onclick="verifyOtp()">Verify</button>
+    <button onclick="resendOtp()">Resend OTP</button>
+    <p id="msg"></p>
+  </div>
+
+  <script>
+    // Autofill email from URL parameter
+    window.onload = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const emailParam = urlParams.get('email');
+      if (emailParam) {
+        document.getElementById('email').value = decodeURIComponent(emailParam);
+      }
+    };
+
+    async function verifyOtp() {
+      const email = document.getElementById('email').value;
+      const otp = document.getElementById('otp').value;
+
+      const res = await fetch('http://localhost:9000/api/v1/auth/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, otp })
+      });
+
+      const data = await res.json();
+      document.getElementById('msg').innerText = data.message;
+      if (res.ok) window.location.href = 'dashboard.html';
+    }
+
+    async function resendOtp() {
+      const email = document.getElementById('email').value;
+
+      const res = await fetch('http://localhost:9000/api/v1/auth/resend-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+
+      const data = await res.json();
+      document.getElementById('msg').innerText = data.message;
+    }
+  </script>
+</body>
+</html>

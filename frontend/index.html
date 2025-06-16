@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2FA Auth - Home</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a73e8, #34c759);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: #fff;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 400px;
+            padding: 24px;
+            margin: 16px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .logo h1 {
+            color: #1a73e8;
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        h2 {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        .home-content {
+            text-align: center;
+        }
+
+        .home-content p {
+            color: #555;
+            margin-bottom: 24px;
+            font-size: 16px;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 12px;
+            background: #1a73e8;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: transform 0.2s, background 0.3s;
+        }
+
+        .btn:hover {
+            background: #1557b0;
+            transform: scale(1.05);
+        }
+
+        .btn-secondary {
+            background: #34c759;
+        }
+
+        .btn-secondary:hover {
+            background: #2ca44e;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 16px;
+                margin: 12px;
+            }
+
+            h2 {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <h1>2FA Auth</h1>
+        </div>
+        <div class="home-content">
+            <h2>Welcome to Secure 2FA</h2>
+            <p>Protect your accounts with seamless two-factor authentication.</p>
+            <div class="cta-buttons">
+                <a href="/frontend/login.html" class="btn">Log In</a>
+                <a href="/frontend/register.html" class="btn btn-secondary">Register</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

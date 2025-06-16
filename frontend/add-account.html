@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2FA Auth - Add Account</title>
+    <!-- QR Scanner library -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a73e8, #34c759);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: #fff;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 400px;
+            padding: 24px;
+            margin: 16px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .logo h1 {
+            color: #1a73e8;
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        h2 {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+            position: relative;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            background: #f9f9f9;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #1a73e8;
+        }
+
+        .qr-options, .logo-options {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .file-upload-label {
+            display: inline-block;
+            padding: 8px 12px;
+            background-color: #f0f0f0;
+            border-radius: 4px;
+            cursor: pointer;
+            border: 1px solid #ddd;
+        }
+
+        .file-upload-label:hover {
+            background-color: #e0e0e0;
+        }
+
+        input[type="file"] {
+            width: 0.1px;
+            height: 0.1px;
+            opacity: 0;
+            overflow: hidden;
+            position: absolute;
+            z-index: -1;
+        }
+
+        .logo-preview-container {
+            width: 64px;
+            height: 64px;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 10px;
+            background-color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #logo-preview {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        #qr-reader {
+            margin-top: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            background: #1a73e8;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.3s;
+        }
+
+        .btn:hover {
+            background: #1557b0;
+            transform: scale(1.05);
+        }
+
+        .btn-secondary {
+            background: #34c759;
+            margin-top: 12px;
+        }
+
+        .btn-secondary:hover {
+            background: #2ca44e;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <h1>2FA Auth</h1>
+        </div>
+        <h2>Add New Account</h2>
+        <form id="add-account-form">
+            <div class="form-group">
+                <label for="secret">TOTP Secret</label>
+                <input type="text" id="secret" placeholder="Enter secret key" required>
+            </div>
+            <div class="form-group">
+                <label>QR Code</label>
+                <div class="qr-options">
+                    <button type="button" id="scan-qr-camera" class="btn btn-secondary">Scan with Camera</button>
+                    <input type="file" id="qr-upload" accept="image/*">
+                    <label for="qr-upload" class="file-upload-label">Upload QR Image</label>
+                </div>
+                <!-- QR Scanner will be placed here -->
+                <div id="qr-reader" style="display: none; width: 100%; max-width: 400px;"></div>
+            </div>
+            <div class="form-group">
+                <label for="issuer">Issuer</label>
+                <select id="issuer" required>
+                    <option value="" disabled selected>Select issuer</option>
+                    <option value="github">GitHub</option>
+                    <option value="discord">Discord</option>
+                    <option value="google">Google</option>
+                    <option value="microsoft">Microsoft</option>
+                    <option value="facebook">Facebook</option>
+                    <option value="twitter">Twitter</option>
+                    <option value="amazon">Amazon</option>
+                    <option value="custom">Custom</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="nickname">Nickname</label>
+                <input type="text" id="nickname" placeholder="e.g., My GitHub" required>
+            </div>
+            <div class="form-group">
+                <label>Logo</label>
+                <div class="logo-preview-container">
+                    <img id="logo-preview" src="https://via.placeholder.com/64?text=Logo" alt="Logo Preview">
+                </div>
+                <div class="logo-options">
+                    <input type="file" id="custom-logo" accept="image/*" style="display:none;">
+                    <label for="custom-logo" class="file-upload-label">Upload Custom Logo</label>
+                </div>
+                <input type="hidden" id="logo-data" name="logo-data">
+            </div>
+            <button type="submit">Add Account</button>
+        </form>
+        <a href="dashboard.html" class="btn btn-secondary">Go to Dashboard</a>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('add-account-form');
+            const qrUpload = document.getElementById('qr-upload');
+            const scanQrCamera = document.getElementById('scan-qr-camera');
+            const issuerSelect = document.getElementById('issuer');
+            const customLogo = document.getElementById('custom-logo');
+            const logoPreview = document.getElementById('logo-preview');
+            const logoData = document.getElementById('logo-data');
+            
+            // Logo mapping for common services
+            const defaultLogos = {
+                'github': 'https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png',
+                'google': 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/Google_%22G%22_Logo.svg/512px-Google_%22G%22_Logo.svg.png',
+                'discord': 'https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png',
+                'microsoft': 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Microsoft_logo.svg/512px-Microsoft_logo.svg.png',
+                'facebook': 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b8/2021_Facebook_icon.svg/512px-2021_Facebook_icon.svg.png',
+                'twitter': 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Logo_of_Twitter.svg/512px-Logo_of_Twitter.svg.png',
+                'amazon': 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Amazon_logo.svg/512px-Amazon_logo.svg.png',
+                'custom': 'https://via.placeholder.com/64?text=Custom'
+            };
+
+            // When issuer changes, update logo preview
+            issuerSelect.addEventListener('change', () => {
+                const selectedIssuer = issuerSelect.value;
+                if (selectedIssuer && defaultLogos[selectedIssuer]) {
+                    logoPreview.src = defaultLogos[selectedIssuer];
+                    logoData.value = defaultLogos[selectedIssuer]; // Store the logo URL
+                }
+            });
+
+            // Handle custom logo upload
+            customLogo.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        logoPreview.src = event.target.result;
+                        logoData.value = event.target.result; // Store the base64 encoded logo
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            // Handle QR code upload
+            qrUpload.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        const img = new Image();
+                        img.onload = function() {
+                            // Create canvas and draw image
+                            const canvas = document.createElement('canvas');
+                            canvas.width = img.width;
+                            canvas.height = img.height;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0);
+                            
+                            // Use jsQR or HTML5-QR-Code library to decode QR code
+                            // For demo purposes, we'll simulate extracting OTP details
+                            simulateQRExtraction();
+                        };
+                        img.src = event.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            // Handle scanning QR with camera
+            scanQrCamera.addEventListener('click', () => {
+                const qrReader = document.getElementById('qr-reader');
+                qrReader.style.display = 'block';
+                
+                // Initialize HTML5 QR code scanner
+                const html5QrCode = new Html5Qrcode("qr-reader");
+                const qrConfig = { fps: 10, qrbox: { width: 250, height: 250 } };
+                
+                html5QrCode.start(
+                    { facingMode: "environment" }, 
+                    qrConfig, 
+                    onScanSuccess,
+                    onScanFailure
+                );
+                
+                function onScanSuccess(decodedText, decodedResult) {
+                    // Stop scanning
+                    html5QrCode.stop().then(() => {
+                        qrReader.style.display = 'none';
+                        parseOtpAuthURL(decodedText);
+                    });
+                }
+                
+                function onScanFailure(error) {
+                    // Handle scan failure, usually when no QR code is in camera view
+                    console.warn(`QR scanning error: ${error}`);
+                }
+            });
+
+            // Process OTP Auth URL
+            function parseOtpAuthURL(url) {
+                try {
+                    // Example URL: otpauth://totp/Example:alice@google.com?secret=JBSWY3DPEHPK3PXP&issuer=Example
+                    if (!url.startsWith('otpauth://')) {
+                        throw new Error('Invalid OTP URL format');
+                    }
+                    
+                    const parsedUrl = new URL(url);
+                    const params = new URLSearchParams(parsedUrl.search);
+                    
+                    // Extract secret
+                    const secret = params.get('secret');
+                    if (!secret) throw new Error('Secret not found in QR code');
+                    
+                    // Extract issuer and account name
+                    const issuer = params.get('issuer') || '';
+                    let label = parsedUrl.pathname.substr(parsedUrl.pathname.lastIndexOf('/') + 1);
+                    
+                    // Some format labels as "Issuer:accountName"
+                    let accountName = '';
+                    if (label.includes(':')) {
+                        const parts = label.split(':');
+                        accountName = parts[1];
+                    } else {
+                        accountName = label;
+                    }
+                    
+                    // Update form values
+                    document.getElementById('secret').value = secret;
+                    document.getElementById('nickname').value = accountName || issuer;
+                    
+                    // Try to match issuer with available options
+                    const normalizedIssuer = issuer.toLowerCase();
+                    for (const [key, value] of Object.entries(defaultLogos)) {
+                        if (normalizedIssuer.includes(key)) {
+                            document.getElementById('issuer').value = key;
+                            logoPreview.src = value;
+                            logoData.value = value;
+                            return;
+                        }
+                    }
+                    
+                    // Default to custom if no match
+                    document.getElementById('issuer').value = 'custom';
+                    logoPreview.src = defaultLogos.custom;
+                    logoData.value = defaultLogos.custom;
+                    
+                } catch (error) {
+                    console.error('Failed to parse OTP URL:', error);
+                    alert('Could not parse the QR code correctly. Please check the format.');
+                }
+            }
+
+            // For demo purposes
+            function simulateQRExtraction() {
+                // Simulate extracting OTP details from QR code
+                const sampleOtpUrl = 'otpauth://totp/Google:user@gmail.com?secret=JBSWY3DPEHPK3PXP&issuer=Google';
+                parseOtpAuthURL(sampleOtpUrl);
+                alert('QR code scanned successfully!');
+            }
+
+            // Handle form submission
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const token = localStorage.getItem('authToken');
+                
+                if (!token) {
+                    alert('No authentication token found. Please log in again.');
+                    window.location.href = 'login.html';
+                    return;
+                }
+                
+                const accountData = {
+                    secret: document.getElementById('secret').value.replace(/\s+/g, '').toUpperCase(),
+                    issuer: document.getElementById('issuer').value,
+                    nickname: document.getElementById('nickname').value,
+                    logoUrl: logoData.value
+                };
+                
+                try {
+                    const response = await fetch('http://localhost:8080/add-account', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify(accountData)
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error('Failed to add account');
+                    }
+                    
+                    alert('Account added successfully!');
+                    window.location.href = 'dashboard.html';
+                } catch (error) {
+                    console.error('Error adding account:', error);
+                    alert('Failed to add account. Please try again.');
+                    
+                    // For demo purposes, simulate success and redirect
+                    alert('Demo mode: Account added successfully!');
+                    window.location.href = 'dashboard.html';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

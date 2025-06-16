@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2FA Authenticator</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    body {
+      background: #f5f5f5;
+      color: #333;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 480px;
+      margin: 0 auto;
+    }
+    
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    
+    h1 {
+      font-size: 24px;
+      color: #2c3e50;
+    }
+    
+    .actions {
+      display: flex;
+      gap: 10px;
+    }
+    
+    .btn {
+      background: #3498db;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      text-decoration: none;
+      display: inline-block;
+    }
+    
+    .btn:hover {
+      background: #2980b9;
+    }
+    
+    .btn-secondary {
+      background: #95a5a6;
+    }
+    
+    .btn-secondary:hover {
+      background: #7f8c8d;
+    }
+    
+    .code-container {
+      margin: 20px 0;
+    }
+    
+    .auth-code {
+      background-color: white;
+      margin-bottom: 15px;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      position: relative;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .code-details {
+      flex: 1;
+    }
+    
+    .code-issuer {
+      font-weight: bold;
+      color: #2c3e50;
+      margin-bottom: 5px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .code-issuer img {
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
+    }
+    
+    .code-username {
+      color: #7f8c8d;
+      font-size: 0.9em;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .totp-code {
+      font-size: 24px;
+      font-weight: bold;
+      letter-spacing: 2px;
+      color: #3498db;
+      font-family: monospace;
+    }
+    
+    .countdown-container {
+      width: 40px;
+      height: 40px;
+      position: relative;
+    }
+    
+    .countdown-ring {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+    
+    .countdown-background {
+      stroke: #ecf0f1;
+      stroke-width: 4;
+      fill: none;
+    }
+    
+    .countdown-progress {
+      stroke: #3498db;
+      stroke-width: 4;
+      fill: none;
+      stroke-linecap: round;
+      transform: rotate(-90deg);
+      transform-origin: center;
+      transition: stroke-dashoffset 1s linear;
+    }
+    
+    .countdown-text {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 14px;
+      font-weight: bold;
+      color: #7f8c8d;
+    }
+    
+    .pin-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    
+    .pin-modal-content {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      width: 90%;
+      max-width: 320px;
+      text-align: center;
+    }
+    
+    .pin-input {
+      margin: 20px 0;
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+    }
+    
+    .pin-input input {
+      width: 40px;
+      height: 50px;
+      text-align: center;
+      font-size: 24px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    
+    .empty-state img {
+      width: 80px;
+      margin-bottom: 20px;
+    }
+    
+    .empty-state h3 {
+      margin-bottom: 10px;
+      color: #2c3e50;
+    }
+    
+    .empty-state p {
+      color: #7f8c8d;
+      margin-bottom: 20px;
+    }
+    
+    /* Delete button styling */
+    .delete-btn {
+      background: none;
+      border: none;
+      color: #e74c3c;
+      cursor: pointer;
+      font-size: 14px;
+      opacity: 0.6;
+      transition: all 0.2s ease;
+      margin-left: 5px;
+    }
+    
+    .delete-btn:hover {
+      opacity: 1;
+      transform: scale(1.1);
+    }
+    
+    /* Confirm delete modal */
+    .confirm-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    
+    .confirm-modal-content {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      width: 90%;
+      max-width: 320px;
+      text-align: center;
+    }
+    
+    .confirm-actions {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 20px;
+    }
+    
+    .btn-cancel {
+      background: #95a5a6;
+      color: white;
+    }
+    
+    .btn-delete {
+      background: #e74c3c;
+      color: white;
+    }
+    
+    /* Toast notification */
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: rgba(46, 204, 113, 0.9);
+      color: white;
+      padding: 12px 20px;
+      border-radius: 4px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+      z-index: 1010;
+      display: none;
+      animation: fade-in 0.3s ease;
+    }
+    
+    @keyframes fade-in {
+      from { opacity: 0; transform: translate(-50%, 10px); }
+      to { opacity: 1; transform: translate(-50%, 0); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Authenticator</h1>
+      <div class="actions">
+        <a href="add-account.html" class="btn">Add Account</a>
+        <a href="pin-setting.html" class="btn btn-secondary" id="settingsBtn">Settings</a>
+      </div>
+    </header>
+    
+    <div class="code-container" id="codesList">
+      <!-- Codes will be loaded here -->
+      <div class="empty-state">
+        <img src="https://cdn-icons-png.flaticon.com/512/6195/6195696.png" alt="Empty">
+        <h3>No Accounts Added</h3>
+        <p>Add your first 2FA account to get started</p>
+        <a href="add-account.html" class="btn">Add Account</a>
+      </div>
+    </div>
+    
+    <!-- PIN Modal -->
+    <div class="pin-modal" id="pinModal">
+      <div class="pin-modal-content">
+        <h2>Enter PIN</h2>
+        <p>Enter your PIN to access your accounts</p>
+        <div class="pin-input">
+          <input type="password" maxlength="1" class="pin-digit" data-index="0">
+          <input type="password" maxlength="1" class="pin-digit" data-index="1">
+          <input type="password" maxlength="1" class="pin-digit" data-index="2">
+          <input type="password" maxlength="1" class="pin-digit" data-index="3">
+        </div>
+        <div id="pinError" style="color: #e74c3c; margin-bottom: 15px; display: none;">
+          Incorrect PIN. Please try again.
+        </div>
+        <button class="btn" id="verifyPinBtn">Verify</button>
+      </div>
+    </div>
+    
+    <!-- Confirm Delete Modal -->
+    <div class="confirm-modal" id="confirmModal">
+      <div class="confirm-modal-content">
+        <h2>Delete Account</h2>
+        <p>Are you sure you want to delete this account?</p>
+        <p id="deleteAccountName" style="font-weight: bold; margin-top: 10px;"></p>
+        <div class="confirm-actions">
+          <button class="btn btn-cancel" id="cancelDeleteBtn">Cancel</button>
+          <button class="btn btn-delete" id="confirmDeleteBtn">Delete</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Toast Notification -->
+    <div class="toast" id="toast"></div>
+  </div>
+  
+  <script>
+    // TOTP period is 30 seconds
+    const TOTP_PERIOD = 30;
+    let timeLeft = TOTP_PERIOD;
+    let codes = [];
+    let accountToDelete = null;
+    const circumference = 2 * Math.PI * 18; // SVG circle radius is 18
+    
+    // DOM Elements
+    const codesList = document.getElementById('codesList');
+    const pinModal = document.getElementById('pinModal');
+    const pinDigits = document.querySelectorAll('.pin-digit');
+    const verifyPinBtn = document.getElementById('verifyPinBtn');
+    const pinError = document.getElementById('pinError');
+    const confirmModal = document.getElementById('confirmModal');
+    const deleteAccountName = document.getElementById('deleteAccountName');
+    const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
+    const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+    const toast = document.getElementById('toast');
+    
+    // Fetch authentication codes
+    async function fetchCodes() {
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        window.location.href = 'login.html';
+        return;
+      }
+      
+      try {
+        const response = await fetch('http://localhost:8080/current-codes', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch codes');
+        }
+        
+        const data = await response.json();
+        
+        // Transform the response format to match our UI needs
+        codes = [];
+        const usedIssuers = new Set(); // Track issuers to avoid duplicates
+        
+        for (const [key, code] of Object.entries(data)) {
+          // Parse the key which is in format: "Issuer (Nickname)"
+          const issuerMatch = key.match(/(.*) \((.*)\)/);
+          if (issuerMatch && issuerMatch.length === 3) {
+            const issuer = issuerMatch[1].trim();
+            const nickname = issuerMatch[2].trim();
+            
+            // Use a unique key to avoid duplicates (combine issuer + nickname)
+            const uniqueKey = `${issuer}-${nickname}`;
+            
+            if (!usedIssuers.has(uniqueKey)) {
+              usedIssuers.add(uniqueKey);
+              
+              codes.push({
+                issuer: issuer,
+                nickname: nickname,
+                code: code,
+                logo: getDefaultLogo(issuer)
+              });
+            }
+          }
+        }
+        
+        updateCodesDisplay();
+      } catch (error) {
+        console.error('Error fetching codes:', error);
+        updateCodesDisplay();
+      }
+    }
+    
+    // Update the visual display of codes
+    function updateCodesDisplay() {
+      if (codes.length === 0) {
+        codesList.innerHTML = `
+          <div class="empty-state">
+            <img src="https://cdn-icons-png.flaticon.com/512/6195/6195696.png" alt="Empty">
+            <h3>No Accounts Added</h3>
+            <p>Add your first 2FA account to get started</p>
+            <a href="add-account.html" class="btn">Add Account</a>
+          </div>
+        `;
+        return;
+      }
+      
+      codesList.innerHTML = '';
+      
+      codes.forEach((codeData, index) => {
+        const logoUrl = codeData.logo || getDefaultLogo(codeData.issuer);
+        const codeElement = document.createElement('div');
+        codeElement.className = 'auth-code';
+        
+        codeElement.innerHTML = `
+          <div class="code-details">
+            <div class="code-issuer">
+              <img src="${logoUrl}" alt="${codeData.issuer} logo">
+              ${codeData.issuer}
+            </div>
+            <div class="code-username">
+              ${codeData.nickname}
+              <button class="delete-btn" title="Delete account" 
+                      data-nickname="${codeData.nickname}" 
+                      data-issuer="${codeData.issuer}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                  <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
+                  <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
+                </svg>
+              </button>
+            </div>
+            <div class="totp-code">${codeData.code}</div>
+          </div>
+          <div class="countdown-container">
+            <svg class="countdown-ring" viewBox="0 0 40 40">
+              <circle class="countdown-background" cx="20" cy="20" r="18"></circle>
+              <circle class="countdown-progress" cx="20" cy="20" r="18" 
+                      stroke-dasharray="${circumference}" 
+                      stroke-dashoffset="0"></circle>
+            </svg>
+            <div class="countdown-text">${timeLeft}</div>
+          </div>
+        `;
+        
+        codesList.appendChild(codeElement);
+      });
+      
+      // Add event listeners to delete buttons
+      document.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', handleDeleteClick);
+      });
+      
+      updateCountdownDisplay();
+    }
+    
+    // Handle delete button click
+    function handleDeleteClick(e) {
+      e.stopPropagation(); // Prevent event bubbling
+      
+      const nickname = e.currentTarget.getAttribute('data-nickname');
+      const issuer = e.currentTarget.getAttribute('data-issuer');
+      const codeData = codes.find(code => code.nickname === nickname && code.issuer === issuer);
+      
+      if (codeData) {
+        accountToDelete = {
+          nickname: nickname,
+          issuer: issuer
+        };
+        deleteAccountName.textContent = `${codeData.issuer} (${nickname})`;
+        confirmModal.style.display = 'flex';
+      }
+    }
+    
+    // Delete account
+    async function deleteAccount(accountInfo) {
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        window.location.href = 'login.html';
+        return;
+      }
+      
+      try {
+        const response = await fetch(
+          `http://localhost:8080/account/${encodeURIComponent(accountInfo.issuer)}/${encodeURIComponent(accountInfo.nickname)}`, 
+          {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          }
+        );
+        
+        if (!response.ok) {
+          throw new Error('Failed to delete account');
+        }
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          showToast('Account deleted successfully');
+          
+          // Remove the deleted account from the local codes array
+          codes = codes.filter(code => 
+            !(code.nickname === accountInfo.nickname && code.issuer === accountInfo.issuer)
+          );
+          updateCodesDisplay();
+        } else {
+          showToast('Failed to delete account', true);
+        }
+      } catch (error) {
+        console.error('Error deleting account:', error);
+        showToast('Failed to delete account', true);
+      }
+    }
+    
+    // Show toast notification
+    function showToast(message, isError = false) {
+      const toastElement = document.getElementById('toast');
+      toastElement.textContent = message;
+      toastElement.style.backgroundColor = isError ? 'rgba(231, 76, 60, 0.9)' : 'rgba(46, 204, 113, 0.9)';
+      toastElement.style.display = 'block';
+      
+      setTimeout(() => {
+        toastElement.style.display = 'none';
+      }, 3000);
+    }
+    
+    // Start timer countdown
+    function startCountdown() {
+      const now = Math.floor(Date.now() / 1000);
+      timeLeft = TOTP_PERIOD - (now % TOTP_PERIOD);
+      
+      updateCountdownDisplay();
+      
+      if (timeLeft <= 1) {
+        setTimeout(fetchCodes, 1000);
+      }
+    }
+    
+    // Update countdown visual display
+    function updateCountdownDisplay() {
+      const percentage = (timeLeft / TOTP_PERIOD) * 100;
+      const dashOffset = circumference - (circumference * percentage / 100);
+      
+      const countdownProgressElements = document.querySelectorAll('.countdown-progress');
+      const countdownTextElements = document.querySelectorAll('.countdown-text');
+      
+      countdownProgressElements.forEach(element => {
+        element.style.strokeDashoffset = dashOffset;
+        
+        if (timeLeft <= 5) {
+          element.style.stroke = '#e74c3c';
+        } else {
+          element.style.stroke = '#3498db';
+        }
+      });
+      
+      countdownTextElements.forEach(element => {
+        element.textContent = timeLeft;
+      });
+    }
+    
+    // Helper function to get default logo based on issuer
+    function getDefaultLogo(issuer) {
+      const logos = {
+        'github': 'https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png',
+        'google': 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/Google_%22G%22_Logo.svg/512px-Google_%22G%22_Logo.svg.png',
+        'discord': 'https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png',
+        'microsoft': 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Microsoft_logo.svg/512px-Microsoft_logo.svg.png',
+        'facebook': 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b8/2021_Facebook_icon.svg/512px-2021_Facebook_icon.svg.png',
+        'twitter': 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Logo_of_Twitter.svg/512px-Logo_of_Twitter.svg.png',
+        'amazon': 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Amazon_logo.svg/512px-Amazon_logo.svg.png'
+      };
+      
+      // Try to match issuer with available logos
+      const lowerIssuer = issuer.toLowerCase();
+      for (const [key, value] of Object.entries(logos)) {
+        if (lowerIssuer.includes(key)) {
+          return value;
+        }
+      }
+      
+      // Return a generic icon if no match
+      return `https://ui-avatars.com/api/?name=${encodeURIComponent(issuer)}&background=random`;
+    }
+    
+    // PIN verification
+    async function verifyPin() {
+      const pinDigitElements = document.querySelectorAll('.pin-digit');
+      let pin = '';
+      
+      pinDigitElements.forEach(input => {
+        pin += input.value;
+      });
+      
+      if (pin.length !== 4) {
+        pinError.style.display = 'block';
+        return;
+      }
+      
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        window.location.href = 'login.html';
+        return;
+      }
+      
+      try {
+        const response = await fetch('http://localhost:8080/verify-pin', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ pin })
+        });
+        
+        const data = await response.json();
+        
+        if (data.verified) {
+          sessionStorage.setItem('pinVerified', 'true');
+          pinModal.style.display = 'none';
+          fetchCodes();
+        } else {
+          pinError.style.display = 'block';
+          pinDigitElements.forEach(input => {
+            input.value = '';
+          });
+          pinDigitElements[0].focus();
+        }
+      } catch (error) {
+        console.error('Error verifying PIN:', error);
+        pinError.style.display = 'block';
+      }
+    }
+    
+    // Initialize app
+    window.onload = function() {
+      // Check PIN verification
+      const pinVerified = sessionStorage.getItem('pinVerified');
+      if (pinVerified === 'true') {
+        pinModal.style.display = 'none';
+        fetchCodes();
+      } else {
+        pinModal.style.display = 'flex';
+        pinDigits[0].focus();
+      }
+      
+      // Start countdown timer
+      startCountdown();
+      setInterval(() => {
+        timeLeft--;
+        
+        if (timeLeft <= 0) {
+          fetchCodes();
+          startCountdown();
+        } else {
+          updateCountdownDisplay();
+        }
+      }, 1000);
+      
+      // Setup PIN input navigation
+      pinDigits.forEach((input, index) => {
+        input.addEventListener('input', (e) => {
+          if (e.target.value.length === 1) {
+            if (index < pinDigits.length - 1) {
+              pinDigits[index + 1].focus();
+            } else {
+              verifyPin();
+            }
+          }
+        });
+        
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Backspace' && e.target.value === '') {
+            if (index > 0) {
+              pinDigits[index - 1].focus();
+            }
+          }
+        });
+      });
+      
+      // Set up confirm modal event listeners
+      cancelDeleteBtn.addEventListener('click', () => {
+        confirmModal.style.display = 'none';
+        accountToDelete = null;
+      });
+      
+      confirmDeleteBtn.addEventListener('click', () => {
+        if (accountToDelete) {
+          deleteAccount(accountToDelete);
+          confirmModal.style.display = 'none';
+          accountToDelete = null;
+        }
+      });
+      
+      verifyPinBtn.addEventListener('click', verifyPin);
+    };
+  </script>
+</body>
+</html>

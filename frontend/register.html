@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Register</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 20px; }
+    form { background: #fff; padding: 20px; border-radius: 8px; max-width: 400px; margin: auto; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    input { display: block; width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; }
+    button { padding: 10px 15px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    button:hover { background: #218838; }
+    .message { margin-top: 15px; font-weight: bold; }
+    .success { color: green; }
+    .error { color: red; }
+  </style>
+</head>
+<body>
+  <form id="registerForm">
+    <h2>Register</h2>
+    <input type="text" name="fullName" placeholder="Full Name" required />
+    <input type="text" name="username" placeholder="Username" required />
+    <input type="email" name="email" placeholder="Email" required />
+    <input type="password" name="password" placeholder="Password" required />
+    <button type="submit">Register</button>
+    <div class="message" id="message"></div>
+  </form>
+
+  <script>
+    document.getElementById("registerForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const fullName = e.target.fullName.value;
+      const username = e.target.username.value;
+      const email = e.target.email.value;
+      const password = e.target.password.value;
+
+      const payload = {
+        fullName,
+        username,
+        email,
+        password,
+        provider: "LOCAL"
+      };
+
+      const messageDiv = document.getElementById("message");
+      messageDiv.textContent = "⏳ Registering...";
+
+      try {
+        const response = await fetch("http://localhost:9000/api/v1/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        const contentType = response.headers.get("content-type");
+
+        if (response.ok) {
+          const data = contentType && contentType.includes("application/json")
+            ? await response.json()
+            : { message: await response.text() };
+
+
+            console.log("Register payload:", payload);
+console.log("Register response:", response);
+console.log("Register data:", data);
+
+          if (data.accessToken) {
+            localStorage.setItem("authToken", data.accessToken); // Save token
+            console.log("Register data.token:", data.accessToken);
+          }
+
+          console.log(localStorage.getItem("authToken")
+);
+          
+
+          messageDiv.textContent = "✅ Registration successful! Redirecting to OTP verification...";
+          messageDiv.className = "message success";
+
+          setTimeout(() => {
+            window.location.href = `http://localhost:5500/frontend/verify-otp.html?email=${encodeURIComponent(email)}`;
+          }, 69000);
+        } else {
+          const errorText = contentType && contentType.includes("application/json")
+            ? (await response.json()).message
+            : await response.text();
+
+          messageDiv.textContent = "❌ " + (errorText || "Something went wrong");
+          messageDiv.className = "message error";
+        }
+      } catch (err) {
+        messageDiv.textContent = "❌ Network error: " + err.message;
+        messageDiv.className = "message error";
+      }
+    });
+  </script>
+</body>
+</html>

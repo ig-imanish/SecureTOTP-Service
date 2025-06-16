@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Token Handler</title>
+  <script>
+    window.onload = function () {
+      const urlParams = new URLSearchParams(window.location.search);
+      const token = urlParams.get('token');
+
+      if (token) {
+        localStorage.setItem('authToken', token);
+        // ✅ Redirect after saving token
+        window.location.href = "/frontend/dashboard.html"; // change to your actual dashboard page
+      } else {
+        document.getElementById('status').textContent = "Token not found in URL.";
+      }
+    }
+  </script>
+</head>
+<body>
+  <h2 id="status">Processing token...</h2>
+</body>
+</html>

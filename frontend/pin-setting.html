@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2FA Auth - Settings</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a73e8, #34c759);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: #fff;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 400px;
+            padding: 24px;
+            margin: 16px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .logo h1 {
+            color: #1a73e8;
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        h2 {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        .settings-section {
+            margin-bottom: 30px;
+        }
+
+        .settings-section h3 {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 12px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+            position: relative;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            background: #f9f9f9;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #1a73e8;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            background: #1a73e8;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.3s;
+            margin-bottom: 12px;
+        }
+
+        .btn:hover {
+            background: #1557b0;
+            transform: scale(1.05);
+        }
+
+        .btn-secondary {
+            background: #95a5a6;
+        }
+
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+        
+        .alert {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-weight: bold;
+            display: none;
+        }
+        
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <h1>2FA Auth</h1>
+        </div>
+        <h2>Settings</h2>
+
+        <div class="alert alert-success" id="successAlert">Operation successful!</div>
+        <div class="alert alert-error" id="errorAlert">Error occurred!</div>
+
+        <div class="settings-section">
+            <h3>PIN Management</h3>
+            <form id="create-pin-form">
+                <div class="form-group">
+                    <label for="new-pin">Create New PIN</label>
+                    <input type="password" id="new-pin" placeholder="Enter a 4-digit PIN" maxlength="4" pattern="[0-9]{4}" required>
+                </div>
+                <button type="submit" class="btn">Create PIN</button>
+            </form>
+            
+            <form id="update-pin-form" style="display: none;">
+                <div class="form-group">
+                    <label for="current-pin">Current PIN</label>
+                    <input type="password" id="current-pin" placeholder="Enter current PIN" maxlength="4" pattern="[0-9]{4}" required>
+                </div>
+                <div class="form-group">
+                    <label for="updated-pin">New PIN</label>
+                    <input type="password" id="updated-pin" placeholder="Enter new PIN" maxlength="4" pattern="[0-9]{4}" required>
+                </div>
+                <button type="submit" class="btn">Update PIN</button>
+            </form>
+        </div>
+        
+        <div class="settings-section">
+            <h3>Security</h3>
+            <button id="reset-btn" class="btn btn-danger">Reset All Data</button>
+            <p style="color: #555; font-size: 14px; margin-top: 8px;">
+                This will remove all your accounts and PIN. This action cannot be undone.
+            </p>
+        </div>
+
+        <a href="dashboard.html" class="btn btn-secondary">Back to Dashboard</a>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            const createPinForm = document.getElementById('create-pin-form');
+            const updatePinForm = document.getElementById('update-pin-form');
+            const resetBtn = document.getElementById('reset-btn');
+            const successAlert = document.getElementById('successAlert');
+            const errorAlert = document.getElementById('errorAlert');
+            
+            // Check if user has PIN setup
+            checkPinStatus();
+            
+            // Create PIN form submission
+            createPinForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const pin = document.getElementById('new-pin').value;
+                
+                try {
+                    const response = await fetch('http://localhost:8080/create-pin', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ pin })
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error('Failed to create PIN');
+                    }
+                    
+                    showAlert(successAlert, 'PIN created successfully!');
+                    createPinForm.style.display = 'none';
+                    updatePinForm.style.display = 'block';
+                    document.getElementById('current-pin').value = '';
+                    document.getElementById('updated-pin').value = '';
+                } catch (error) {
+                    console.error('Error creating PIN:', error);
+                    showAlert(errorAlert, 'Failed to create PIN');
+                    
+                 
+                }
+            });
+            
+            // Update PIN form submission
+            updatePinForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const currentPin = document.getElementById('current-pin').value;
+                const newPin = document.getElementById('updated-pin').value;
+                
+                try {
+                    const response = await fetch('http://localhost:8080/update-pin', {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ currentPin, newPin })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (!response.ok) {
+                        throw new Error(data.error || 'Failed to update PIN');
+                    }
+                    
+                    showAlert(successAlert, 'PIN updated successfully!');
+                    document.getElementById('current-pin').value = '';
+                    document.getElementById('updated-pin').value = '';
+                } catch (error) {
+                    console.error('Error updating PIN:', error);
+                    showAlert(errorAlert, error.message || 'Failed to update PIN');
+                }
+            });
+            
+            // Reset button
+            resetBtn.addEventListener('click', () => {
+                if (confirm('Are you sure you want to reset all your data? This cannot be undone.')) {
+                    // In real app, call API to delete accounts
+                    localStorage.removeItem('accounts');
+                    sessionStorage.removeItem('pinVerified');
+                    showAlert(successAlert, 'All data has been reset');
+                    setTimeout(() => {
+                        window.location.href = '/frontend/dashboard.html';
+                    }, 1500);
+                }
+            });
+            
+            // Check if user already has a PIN
+            async function checkPinStatus() {
+
+                try {
+                    const response = await fetch('http://localhost:8080/get-pin', {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (!response.ok) {
+                         createPinForm.style.display = 'block';
+                        updatePinForm.style.display = 'none';
+                        throw new Error(data.error || 'Failed to create PIN');
+                    } else {
+                        createPinForm.style.display = 'none';
+                        updatePinForm.style.display = 'block';
+                    }
+                    
+                    
+                } catch (error) {
+                    console.error('Error updating PIN:', error);
+                    showAlert(errorAlert, error.message || 'Failed to update PIN');
+                }
+            }
+            
+            // Show alert message
+            function showAlert(alertElement, message) {
+                alertElement.textContent = message;
+                alertElement.style.display = 'block';
+                
+                setTimeout(() => {
+                    alertElement.style.display = 'none';
+                }, 3000);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>2FA Authenticator</title>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        .code-container {
+            margin: 20px 0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .auth-code {
+            background-color: white;
+            margin-bottom: 15px;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        .code-issuer {
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+        .code-username {
+            color: #7f8c8d;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+        }
+        .totp-code {
+            font-size: 24px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            color: #3498db;
+            font-family: monospace;
+        }
+        .countdown {
+            height: 4px;
+            background-color: #3498db;
+            width: 100%;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            transition: width linear 1s;
+        }
+        form {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        label {
+            display: block;
+            margin: 10px 0 5px;
+            font-weight: bold;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+    </style>
+    <script>
+        // TOTP period is 30 seconds
+        const TOTP_PERIOD = 30;
+        let timeLeft = TOTP_PERIOD;
+        let codes = [];
+
+        // Fetch and update codes
+        function fetchCodes() {
+            fetch('/codes')
+                .then(response => response.text())
+                .then(data => {
+                    const lines = data.trim().split('\n');
+                    codes = [];
+                    for (const line of lines) {
+                        if (line) {
+                            const parts = line.split(': ');
+                            const nameParts = parts[0].split(' (');
+                            const issuer = nameParts[0];
+                            const username = nameParts[1].replace(')', '');
+                            const code = parts[1];
+                            codes.push({issuer, username, code});
+                        }
+                    }
+                    updateCodesDisplay();
+                });
+        }
+
+        // Update the visual display of codes
+        function updateCodesDisplay() {
+            const container = document.getElementById('codesList');
+            container.innerHTML = '';
+            
+            if (codes.length === 0) {
+                container.innerHTML = '<div class="auth-code">No accounts added yet</div>';
+                return;
+            }
+            
+            codes.forEach(codeData => {
+                const codeElement = document.createElement('div');
+                codeElement.className = 'auth-code';
+                
+                codeElement.innerHTML = `
+                    <div class="code-issuer">${codeData.issuer}</div>
+                    <div class="code-username">${codeData.username}</div>
+                    <div class="totp-code">${codeData.code}</div>
+                    <div class="countdown" id="countdown-${codeData.username.replace(/\s+/g, '-')}"></div>
+                `;
+                
+                container.appendChild(codeElement);
+            });
+            
+            // Reset countdown state when codes are updated
+            resetCountdown();
+        }
+
+        // Start timer countdown
+        function startCountdown() {
+            // Get epoch seconds
+            const now = Math.floor(Date.now() / 1000);
+            // Calculate seconds remaining in current period
+            timeLeft = TOTP_PERIOD - (now % TOTP_PERIOD);
+            
+            updateCountdownDisplay();
+            
+            // If we're close to the end of the period, prepare to fetch new codes
+            if (timeLeft <= 1) {
+                setTimeout(fetchCodes, 1000);
+            }
+        }
+
+        // Update countdown visual display
+        function updateCountdownDisplay() {
+            const countdownElements = document.querySelectorAll('.countdown');
+            const percentage = (timeLeft / TOTP_PERIOD) * 100;
+            
+            countdownElements.forEach(element => {
+                element.style.width = `${percentage}%`;
+                
+                // Change color when time is running out
+                if (timeLeft <= 5) {
+                    element.style.backgroundColor = '#e74c3c';
+                } else {
+                    element.style.backgroundColor = '#3498db';
+                }
+            });
+        }
+
+        // Reset countdown animation
+        function resetCountdown() {
+            const countdownElements = document.querySelectorAll('.countdown');
+            countdownElements.forEach(element => {
+                // Force reflow to restart animation properly
+                element.style.transition = 'none';
+                element.offsetHeight; // Trigger reflow
+                element.style.transition = 'width linear 1s';
+            });
+        }
+
+        // Initialize app
+        window.onload = function() {
+            fetchCodes();
+            
+            // Start countdown timer
+            startCountdown();
+            setInterval(() => {
+                timeLeft--;
+                
+                if (timeLeft <= 0) {
+                    fetchCodes();
+                    startCountdown();
+                } else {
+                    updateCountdownDisplay();
+                }
+            }, 1000);
+        };
+    </script>
+</head>
+<body>
+<h1>2FA Authenticator</h1>
+
+<form action="/add" method="post">
+    <h2>Add New Account</h2>
+    <label for="username">Username:</label>
+    <input type="text" id="username" name="username" required>
+    
+    <label for="issuer">App/Service:</label>
+    <input type="text" id="issuer" name="issuer" required>
+    
+    <label for="secret">Secret Key (Base32):</label>
+    <input type="text" id="secret" name="secret" required>
+    
+    <button type="submit">Add Account</button>
+</form>
+
+<h2>Authentication Codes</h2>
+<div class="code-container" id="codesList">
+    <div class="auth-code">Loading codes...</div>
+</div>
+
+</body>
+</html>
