@@ -14,7 +14,7 @@ import org.springframework.web.client.RestTemplate;
 @Service
 public class UserFetchService {
 
-    @Value("${auth.server.url:http://localhost:9000}")
+    @Value("${auth.server.url")
     private String authServerUrl;
 
     /**
